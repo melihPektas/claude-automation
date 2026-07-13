@@ -8,7 +8,7 @@ import { loadConfig } from '../src/config.mjs';
 import { summarize } from '../src/summary.mjs';
 import { summarizeK6 } from '../src/k6.mjs';
 import { summarizeMutation, UNIT_OUT, INTEG_OUT, MUT_JSON } from '../src/quality.mjs';
-import { wiremockStatus, wiremockStart, wiremockStop, API_OUT, LOCUST_OUT, PACT_OUT, WIREMOCK_URL } from '../src/backend.mjs';
+import { wiremockStatus, wiremockStart, wiremockStop, API_OUT, LOCUST_OUT, PACT_OUT, WIREMOCK_URL, BACKEND_REPORT_DIR } from '../src/backend.mjs';
 
 const MUT_REPORT_DIR = resolve(fileURLToPath(new URL('..', import.meta.url)), 'reports', 'mutation');
 
@@ -94,6 +94,10 @@ const server = createServer(async (req, res) => {
       return redirect(res, '/report/mutation/mutation.html');
     if (url.pathname.startsWith('/report/mutation/'))
       return serveFrom(MUT_REPORT_DIR, url.pathname.slice('/report/mutation/'.length), res);
+    if (url.pathname === '/report/backend' || url.pathname === '/report/backend/')
+      return redirect(res, '/report/backend/index.html');
+    if (url.pathname.startsWith('/report/backend/'))
+      return serveFrom(BACKEND_REPORT_DIR, url.pathname.slice('/report/backend/'.length), res);
     // Raporları dashboard içinden aç: /report/playwright/… ve /report/allure/…
     if (url.pathname === '/report/playwright' || url.pathname === '/report/playwright/')
       return redirect(res, '/report/playwright/index.html');
@@ -138,6 +142,8 @@ async function buildStatus() {
       allure: existsSync(resolve(ALLURE_REPORT_DIR, 'index.html')),
       allureResults: existsSync(ALLURE_RESULTS_DIR),
       mutation: existsSync(resolve(MUT_REPORT_DIR, 'mutation.html')),
+      backend: existsSync(resolve(BACKEND_REPORT_DIR, 'index.html')),
+      locustHtml: existsSync(resolve(BACKEND_REPORT_DIR, 'locust.html')),
     },
     e2eDir: cfg.e2eDir,
   };

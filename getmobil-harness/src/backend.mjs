@@ -4,6 +4,9 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseUnitTap } from './quality.mjs';
+import { writeBackendReport, BACKEND_REPORT_DIR, LOCUST_HTML } from './backend-report.mjs';
+
+export { BACKEND_REPORT_DIR };
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const HARNESS_DIR = resolve(here, '..');
@@ -78,6 +81,7 @@ export async function runApiTests() {
   const { code, out } = await sh('node --test --test-reporter=tap backend/api-tests/*.api.test.mjs');
   const summary = { ...parseUnitTap(out, code), tool: 'node:test + fetch', target: WIREMOCK_URL };
   writeReport(API_OUT, summary);
+  refreshBackendReport();
   return summary;
 }
 
@@ -86,12 +90,15 @@ export async function runApiTests() {
 export async function runLocust({ users = 10, spawnRate = 5, duration = '15s' } = {}) {
   const wm = await wiremockStart();
   if (!wm.ok) return { ok: false, error: wm.error };
+  mkdirSync(BACKEND_REPORT_DIR, { recursive: true });
+  // --html: Locust'un grafikli (RPS/yanıt süresi zaman serili) native raporu
   const { code, out } = await sh(
     `locust -f backend/locustfile.py --headless -u ${Number(users)} -r ${Number(spawnRate)} ` +
-      `-t ${String(duration)} --host ${WIREMOCK_URL} --json`,
+      `-t ${String(duration)} --host ${WIREMOCK_URL} --json --html "${LOCUST_HTML}"`,
   );
   const summary = summarizeLocust(out, code, { users, duration });
   writeReport(LOCUST_OUT, summary);
+  refreshBackendReport();
   return summary;
 }
 
@@ -187,10 +194,20 @@ export async function runPact() {
     interactions: consumerSummary.tests?.map((t) => ({ title: t.title, status: t.status })) ?? [],
   };
   writeReport(PACT_OUT, summary);
+  refreshBackendReport();
   return summary;
 }
 
 // ---------- yardımcılar ----------
+
+/** Birleşik Backend HTML raporunu (reports/backend/index.html) tazeler. */
+function refreshBackendReport() {
+  try {
+    writeBackendReport({ apiPath: API_OUT, locustPath: LOCUST_OUT, pactPath: PACT_OUT });
+  } catch (err) {
+    process.stderr.write(`[backend] rapor üretilemedi: ${err.message}\n`);
+  }
+}
 
 /** Komutu koşar; stdout'u AYRI döndürür (JSON/TAP ayrıştırma için), her şeyi stderr'e yansıtır. */
 function sh(command) {
@@ -236,8 +253,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   else if (cmd === 'wiremock-start') done(await wiremockStart());
   else if (cmd === 'wiremock-stop') done(await wiremockStop());
   else if (cmd === 'wiremock-status') emit({ running: await wiremockStatus(), url: WIREMOCK_URL });
-  else {
-    process.stderr.write('kullanım: node src/backend.mjs <api|locust|pact|wiremock-start|wiremock-stop|wiremock-status>\n');
+  else if (cmd === 'report') {
+    const path = writeBackendReport({ apiPath: API_OUT, locustPath: LOCUST_OUT, pactPath: PACT_OUT });
+    emit({ ok: true, report: path });
+  } else {
+    process.stderr.write('kullanım: node src/backend.mjs <api|locust|pact|report|wiremock-start|wiremock-stop|wiremock-status>\n');
     process.exit(2);
   }
 }

@@ -63,7 +63,7 @@ Platform, kendi kodunu **test piramidi** stratejisiyle test eder — geniş hız
 - 📈 **k6 yük testi** — smoke / load / stress profilleri (p95, p99, RPS, hata oranı)
 - 🚦 **Bad-case & filtre kapsamı** — 404'ler, hatalı girdi, **filtre doğruluğu** (256 GB → sonuç azalır), `?pageNumber` sayfalama
 - 🔌 **Backend Otomasyon** — **WireMock** dinamik mock (id/body echo, UUID, zaman damgası) · **API testleri** (GET/POST/PUT/PATCH/DELETE + bad case) · **Locust** yük · **Pact** contract (consumer → provider doğrulama)
-- 📊 **3 katmanlı rapor** — Playwright HTML · **Allure** · Stryker mutation, dashboard'dan tek tıkla
+- 📊 **5 katmanlı rapor** — Playwright HTML · **Allure** · Stryker mutation · **Backend Raporu** (API+Locust+Pact birleşik) · **Locust grafikli**, hepsi dashboard'dan tek tıkla
 - 🔁 **n8n otomasyonu** — **otomatik** (cron) + **manuel** + **webhook** tetikleme, tek zincir
 
 ---

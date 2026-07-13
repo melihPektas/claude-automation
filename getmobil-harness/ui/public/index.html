@@ -258,6 +258,11 @@
   <section class="card">
     <h2>🔌 Backend Otomasyon <span class="tag">WireMock · API · Locust · Pact</span></h2>
     <div class="body">
+      <div class="reptools">
+        <a class="rep" id="btnBackendRep" href="/report/backend/" target="_blank" rel="noopener">📄 Backend Raporu</a>
+        <a class="rep" id="btnLocustRep" href="/report/backend/locust.html" target="_blank" rel="noopener">📊 Locust Raporu (grafikli)</a>
+        <span class="rephint">Her koşudan sonra otomatik güncellenir</span>
+      </div>
       <div class="qgrid">
         <!-- WireMock -->
         <div class="qpanel">
@@ -499,12 +504,25 @@ $('#runLocust').addEventListener('click', () =>
   post('/api/backend/locust', { users: $('#locustUsers').value, duration: $('#locustDur').value, rate: 5 }));
 $('#runPact').addEventListener('click', () => post('/api/backend/pact', {}));
 
-function renderBackend(b) {
+let backendReports = { backend: false, locustHtml: false };
+$('#btnBackendRep').addEventListener('click', (e) => {
+  if (!backendReports.backend) { e.preventDefault(); alert('Önce bir backend testi çalıştırın (API/Locust/Pact) — rapor otomatik oluşur.'); }
+});
+$('#btnLocustRep').addEventListener('click', (e) => {
+  if (!backendReports.locustHtml) { e.preventDefault(); alert('Önce Locust yük testini çalıştırın — grafikli rapor otomatik oluşur.'); }
+});
+
+function renderBackend(b, reports) {
   if (!b) return;
   $('#wmBadge').style.display = b.wiremock ? 'inline-block' : 'none';
   renderTier('#apistats', '#apitable', b.api);
   renderLocust(b.locust);
   renderPact(b.pact);
+  if (reports) {
+    backendReports = { backend: !!reports.backend, locustHtml: !!reports.locustHtml };
+    $('#btnBackendRep').toggleAttribute('disabled', !backendReports.backend);
+    $('#btnLocustRep').toggleAttribute('disabled', !backendReports.locustHtml);
+  }
 }
 
 function renderLocust(l) {
@@ -753,7 +771,7 @@ async function poll() {
     renderTier('#unitstats', '#unittable', st.unit);
     renderTier('#integstats', '#integtable', st.integration);
     renderPyramid(st.pyramid); renderMutation(st.mutation);
-    renderBackend(st.backend);
+    renderBackend(st.backend, st.reports);
   } catch (e) { setStatus('fail', 'Sunucuya bağlanılamadı'); }
 }
 

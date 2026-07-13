@@ -92,12 +92,21 @@ Dashboard'daki **Backend Otomasyon** bölümü, gerçek backend'e dokunmadan tam
 | 🤝 **Pact** | **Consumer** (dashboard) kontratı üretir → **Provider** (WireMock) kontrata karşı doğrulanır; 3 etkileşim |
 
 ```bash
-npm run wiremock          # mock sunucuyu başlat (Java gerekir)
+npm run wiremock          # mock sunucuyu başlat (Java gerekir; jar otomatik indirilir)
 npm run backend:api       # CRUD API testleri
 npm run backend:locust    # yük testi (LOCUST: brew install locust)
 npm run backend:pact      # consumer + provider doğrulaması
+node src/backend.mjs report   # birleşik HTML raporu elle tazele
 ```
 Hepsi stdout'a tek satır JSON özet basar (n8n uyumlu) ve `reports/{api,locust,pact}.json` üretir.
+
+### Backend Raporlama
+Her koşudan sonra **otomatik** güncellenen iki HTML raporu üretilir ve dashboard'dan tek tıkla açılır:
+
+| Rapor | İçerik | Yol |
+|-------|--------|-----|
+| 📄 **Backend Raporu** | API + Locust + Pact birleşik özeti (BAŞARILI/BAŞARISIZ rozetleri, test/endpoint/etkileşim tabloları) | `/report/backend/` |
+| 📊 **Locust Raporu** | Locust'un native grafikli raporu: RPS/yanıt süresi zaman serileri, yüzdelik tablosu (p50–p100) | `/report/backend/locust.html` |
 
 ## 🔁 n8n Entegrasyonu (otomatik + manuel tetikleme)
 
