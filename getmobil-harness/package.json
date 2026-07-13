@@ -13,6 +13,10 @@
     "run:all-browsers": "node src/run.mjs --browsers chromium,firefox,webkit",
     "k6": "node src/k6.mjs",
     "k6:smoke": "node src/k6.mjs --profile smoke",
+    "wiremock": "node src/backend.mjs wiremock-start",
+    "backend:api": "node src/backend.mjs api",
+    "backend:locust": "node src/backend.mjs locust",
+    "backend:pact": "node src/backend.mjs pact",
     "ui": "node ui/server.mjs",
     "test:unit": "node --test test/*.unit.test.mjs",
     "test:integration": "node --test test/*.int.test.mjs",
@@ -24,6 +28,7 @@
     "node": ">=18"
   },
   "devDependencies": {
+    "@pact-foundation/pact": "^17.0.1",
     "@stryker-mutator/core": "^8.7.1"
   }
 }

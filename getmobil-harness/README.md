@@ -8,6 +8,7 @@
 - 🌐 **Multi-browser** — chromium · firefox · webkit · mobile-chrome · mobile-safari
 - ⚡ **Paralel çalıştırma** — yapılandırılabilir worker sayısı
 - 📈 **k6 yük testi** — smoke / load / stress profilleri
+- 🔌 **Backend Otomasyon** — WireMock dinamik mock · API testleri (GET/POST/PUT/PATCH/DELETE) · Locust yük · Pact contract
 - 🧪 **Harness kodu için unit + integration + mutation test** — node:test + Stryker (%85.6 mutation), sonuçlar dashboard'da
 - 📊 **Raporlar** — Playwright HTML · Allure · Stryker mutation, dashboard'dan tek tıkla
 - 🔁 **n8n workflow** — zamanlanmış E2E + yük testi zinciri
@@ -78,6 +79,25 @@ BASE_URL=https://staging.getmobil.com node src/k6.mjs # farklı hedef
 {"ok":true,"tool":"k6","requests":12,"rps":0.9,"avgMs":99,"p95Ms":173,"p99Ms":202,"failRate":0,"checksPassed":24,"thresholdsPassed":true}
 ```
 > k6 gerekir: `brew install k6` (macOS) veya https://k6.io/docs/get-started/installation
+
+## 🔌 Backend Otomasyon (WireMock · API · Locust · Pact)
+
+Dashboard'daki **Backend Otomasyon** bölümü, gerçek backend'e dokunmadan tam bir API test hattı sunar:
+
+| Bileşen | Ne yapar |
+|---------|----------|
+| 🧱 **WireMock** (:8089) | Getmobil-benzeri ürün API'sini taklit eder. Yanıtlar **dinamiktir**: id/body echo, rastgele stok, zaman damgası, UUID (Handlebars templating). Dashboard'dan başlat/durdur + "Dinamik Yanıtı Canlı Dene" |
+| 🧪 **API testleri** | 13 test: **GET · POST · PUT · PATCH · DELETE** + bad case'ler (404, 400 doğrulama) + dinamiklik kanıtı (farklı traceId/id). node:test + native fetch |
+| 🦗 **Locust** | Mock API'ye CRUD ağırlıklı yük (kullanıcı/süre ayarlanabilir); endpoint bazında istek/ort/p95 kırılımı |
+| 🤝 **Pact** | **Consumer** (dashboard) kontratı üretir → **Provider** (WireMock) kontrata karşı doğrulanır; 3 etkileşim |
+
+```bash
+npm run wiremock          # mock sunucuyu başlat (Java gerekir)
+npm run backend:api       # CRUD API testleri
+npm run backend:locust    # yük testi (LOCUST: brew install locust)
+npm run backend:pact      # consumer + provider doğrulaması
+```
+Hepsi stdout'a tek satır JSON özet basar (n8n uyumlu) ve `reports/{api,locust,pact}.json` üretir.
 
 ## 🔁 n8n Entegrasyonu (otomatik + manuel tetikleme)
 

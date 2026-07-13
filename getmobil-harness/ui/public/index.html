@@ -254,6 +254,60 @@
     </section>
   </div>
 
+  <!-- Backend Otomasyon -->
+  <section class="card">
+    <h2>🔌 Backend Otomasyon <span class="tag">WireMock · API · Locust · Pact</span></h2>
+    <div class="body">
+      <div class="qgrid">
+        <!-- WireMock -->
+        <div class="qpanel">
+          <div class="qhead">
+            <span>🧱 WireMock Mock Sunucu <span class="badge-live" id="wmBadge" style="display:none">● ayakta</span></span>
+            <span style="display:flex;gap:6px">
+              <button class="rep" id="wmStart">▶ Başlat</button>
+              <button class="rep" id="wmStop">■ Durdur</button>
+            </span>
+          </div>
+          <p style="color:var(--muted);font-size:12px;margin:0 0 10px">
+            Getmobil-benzeri ürün API'sini taklit eder: <b>GET · POST · PUT · PATCH · DELETE</b>.
+            Yanıtlar <b>dinamiktir</b> — id/body echo, rastgele stok, zaman damgası, UUID (Handlebars templating).
+          </p>
+          <button class="rep" id="wmDemo">🎲 Dinamik Yanıtı Canlı Dene</button>
+          <div class="console" id="wmDemoOut" style="max-height:120px;margin-top:10px">—</div>
+        </div>
+        <!-- API testleri -->
+        <div class="qpanel">
+          <div class="qhead"><span>🧪 API Testleri <span style="color:var(--muted);font-weight:400">CRUD + bad case</span></span>
+            <button class="rep" id="runApi">▶ Çalıştır</button></div>
+          <div class="stats3" id="apistats">
+            <div class="mini"><div class="n">–</div><div class="l">Toplam</div></div>
+            <div class="mini"><div class="n" style="color:var(--green)">–</div><div class="l">Geçti</div></div>
+            <div class="mini"><div class="n" style="color:var(--red)">–</div><div class="l">Kaldı</div></div>
+          </div>
+          <div class="tbl-wrap" style="max-height:170px"><table id="apitable"><tbody></tbody></table></div>
+        </div>
+        <!-- Locust -->
+        <div class="qpanel">
+          <div class="qhead"><span>🦗 Locust Yük Testi</span><button class="rep" id="runLocust">▶ Çalıştır</button></div>
+          <div class="grid2" style="margin-bottom:10px">
+            <div><label class="f">Kullanıcı</label><input type="number" id="locustUsers" value="10" min="1" max="100"/></div>
+            <div><label class="f">Süre</label><select id="locustDur"><option>10s</option><option selected>15s</option><option>30s</option></select></div>
+          </div>
+          <div class="k6grid" id="locustgrid" style="grid-template-columns:repeat(2,1fr)"><div class="empty">Henüz çalıştırılmadı.</div></div>
+          <div class="tbl-wrap" style="max-height:140px;margin-top:10px"><table id="locusttable"><tbody></tbody></table></div>
+        </div>
+        <!-- Pact -->
+        <div class="qpanel">
+          <div class="qhead"><span>🤝 Pact Contract Testi</span><button class="rep" id="runPact">▶ Çalıştır</button></div>
+          <p style="color:var(--muted);font-size:12px;margin:0 0 10px">
+            <b>Consumer</b> (dashboard) kontratı üretir → <b>Provider</b> (mock API) kontrata karşı doğrulanır.
+          </p>
+          <div id="pactbody"><div class="empty">Henüz çalıştırılmadı.</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- n8n Otomasyon -->
   <section class="card">
     <h2>🔁 n8n Otomasyon <span class="tag">otomatik + manuel tetikleme</span></h2>
@@ -423,6 +477,72 @@ $('#runPipeline').addEventListener('click', () => {
   if (!confirm('n8n workflow zinciri manuel tetiklenecek: E2E smoke (3 tarayıcı) → k6 smoke. Başlatılsın mı?')) return;
   post('/api/pipeline', {});
 });
+// --- Backend Otomasyon ---
+$('#wmStart').addEventListener('click', async () => {
+  $('#wmDemoOut').textContent = 'WireMock başlatılıyor…';
+  await post('/api/backend/wiremock/start', {});
+  $('#wmDemoOut').textContent = 'Başlatma istendi — durum rozetini izleyin.';
+});
+$('#wmStop').addEventListener('click', () => post('/api/backend/wiremock/stop', {}));
+$('#wmDemo').addEventListener('click', async () => {
+  const out = $('#wmDemoOut');
+  out.textContent = 'İstek atılıyor…';
+  try {
+    const r = await fetch('/api/backend/demo');
+    const j = await r.json();
+    out.textContent = j.error ? '✗ ' + j.error
+      : '→ ' + j.request + '\n← ' + JSON.stringify(j.response, null, 2);
+  } catch (e) { out.textContent = '✗ ' + e.message; }
+});
+$('#runApi').addEventListener('click', () => post('/api/backend/api', {}));
+$('#runLocust').addEventListener('click', () =>
+  post('/api/backend/locust', { users: $('#locustUsers').value, duration: $('#locustDur').value, rate: 5 }));
+$('#runPact').addEventListener('click', () => post('/api/backend/pact', {}));
+
+function renderBackend(b) {
+  if (!b) return;
+  $('#wmBadge').style.display = b.wiremock ? 'inline-block' : 'none';
+  renderTier('#apistats', '#apitable', b.api);
+  renderLocust(b.locust);
+  renderPact(b.pact);
+}
+
+function renderLocust(l) {
+  const g = $('#locustgrid');
+  if (!l) return;
+  if (l.error) { g.innerHTML = `<div class="empty">${esc(l.error)}</div>`; return; }
+  const items = [
+    ['İstek', l.requests ?? '–'],
+    ['Hata', (l.failRate != null ? (l.failRate * 100).toFixed(1) + '%' : '–')],
+    ['Ort. Süre', l.avgMs != null ? l.avgMs + 'ms' : '–'],
+    ['Maks', l.maxMs != null ? l.maxMs + 'ms' : '–'],
+  ];
+  g.innerHTML = items.map(([lab, n]) => `<div class="metric"><div class="n">${n}</div><div class="l">${lab}</div></div>`).join('');
+  const tb = $('#locusttable').querySelector('tbody'); tb.innerHTML = '';
+  for (const e of (l.endpoints || [])) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="unit-row"><span><b>${esc(e.method)}</b> ${esc(e.name.replace(e.method + ' ', ''))}</span>
+      <span style="color:var(--muted)">${e.requests} istek · ort ${e.avgMs}ms · p95 ${e.p95Ms ?? '–'}ms
+      ${e.failures ? '<span class="u-fail"> · ' + e.failures + ' hata</span>' : ''}</span></td>`;
+    tb.appendChild(tr);
+  }
+}
+
+function renderPact(p) {
+  const box = $('#pactbody');
+  if (!p) return;
+  if (p.error) { box.innerHTML = `<div class="empty">${esc(p.error)}</div>`; return; }
+  const rows = (p.interactions || []).map((i) =>
+    `<div class="unit-row"><span>${esc(i.title.replace('kontrat: ', ''))}</span>
+     <span class="u-${i.status === 'passed' ? 'ok' : 'fail'}">${i.status === 'passed' ? '✓' : '✗'}</span></div>`).join('');
+  box.innerHTML = `
+    <div class="stats3" style="grid-template-columns:1fr 1fr">
+      <div class="mini"><div class="n" style="color:${p.consumer?.failed === 0 ? 'var(--green)' : 'var(--red)'}">${p.consumer?.passed ?? '–'}/${p.consumer?.total ?? '–'}</div><div class="l">Consumer (kontrat)</div></div>
+      <div class="mini"><div class="n" style="color:${p.provider?.verified ? 'var(--green)' : 'var(--red)'}">${p.provider?.verified ? '✓ Doğrulandı' : '✗'}</div><div class="l">Provider (WireMock)</div></div>
+    </div>
+    <div style="margin-top:8px">${rows}</div>`;
+}
+
 $('#runUnit').addEventListener('click', () => post('/api/unit', {}));
 $('#runInteg').addEventListener('click', () => post('/api/integration', {}));
 $('#runMut').addEventListener('click', () => {
@@ -612,8 +732,8 @@ async function poll() {
   try {
     const r = await fetch('/api/status'); const st = await r.json();
     $('#e2edir').textContent = 'E2E: ' + (st.e2eDir || '');
-    const jobLabel = { k6: 'Yük testi', allure: 'Allure raporu', e2e: 'Testler', unit: 'Unit testler', integration: 'Integration testler', mutation: 'Mutation testi', pipeline: 'n8n pipeline (E2E→k6)' };
-    const runBtns = ['#runE2E', '#runK6', '#runUnit', '#runInteg', '#runMut', '#runPipeline'];
+    const jobLabel = { k6: 'Yük testi', allure: 'Allure raporu', e2e: 'Testler', unit: 'Unit testler', integration: 'Integration testler', mutation: 'Mutation testi', pipeline: 'n8n pipeline (E2E→k6)', 'backend-api': 'API testleri', 'backend-locust': 'Locust yük testi', 'backend-pact': 'Pact contract testi' };
+    const runBtns = ['#runE2E', '#runK6', '#runUnit', '#runInteg', '#runMut', '#runPipeline', '#runApi', '#runLocust', '#runPact'];
     $('#pipelineLive').style.display = (st.job && st.job.type === 'pipeline') ? 'inline-block' : 'none';
     if (st.job) {
       state.running = true;
@@ -633,6 +753,7 @@ async function poll() {
     renderTier('#unitstats', '#unittable', st.unit);
     renderTier('#integstats', '#integtable', st.integration);
     renderPyramid(st.pyramid); renderMutation(st.mutation);
+    renderBackend(st.backend);
   } catch (e) { setStatus('fail', 'Sunucuya bağlanılamadı'); }
 }
 

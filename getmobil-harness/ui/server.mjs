@@ -8,6 +8,7 @@ import { loadConfig } from '../src/config.mjs';
 import { summarize } from '../src/summary.mjs';
 import { summarizeK6 } from '../src/k6.mjs';
 import { summarizeMutation, UNIT_OUT, INTEG_OUT, MUT_JSON } from '../src/quality.mjs';
+import { wiremockStatus, wiremockStart, wiremockStop, API_OUT, LOCUST_OUT, PACT_OUT, WIREMOCK_URL } from '../src/backend.mjs';
 
 const MUT_REPORT_DIR = resolve(fileURLToPath(new URL('..', import.meta.url)), 'reports', 'mutation');
 
@@ -56,7 +57,32 @@ computeE2ECount();
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   try {
-    if (url.pathname === '/api/status') return json(res, buildStatus());
+    if (url.pathname === '/api/status') return json(res, await buildStatus());
+    // Backend otomasyon
+    if (url.pathname === '/api/backend/api' && req.method === 'POST') return startBackend(res, 'api', []);
+    if (url.pathname === '/api/backend/locust' && req.method === 'POST') {
+      const opts = await body(req);
+      const args = [];
+      if (opts.users) args.push('--users', String(opts.users));
+      if (opts.rate) args.push('--rate', String(opts.rate));
+      if (opts.duration) args.push('--duration', String(opts.duration));
+      return startBackend(res, 'locust', args);
+    }
+    if (url.pathname === '/api/backend/pact' && req.method === 'POST') return startBackend(res, 'pact', []);
+    if (url.pathname === '/api/backend/wiremock/start' && req.method === 'POST')
+      return json(res, await wiremockStart());
+    if (url.pathname === '/api/backend/wiremock/stop' && req.method === 'POST')
+      return json(res, await wiremockStop());
+    // Dinamik mock demo: WireMock'tan canlı yanıt çek (CORS'suz, sunucu üzerinden)
+    if (url.pathname === '/api/backend/demo') {
+      const id = Math.floor(Math.random() * 900) + 100;
+      try {
+        const r = await fetch(`${WIREMOCK_URL}/api/products/${id}`, { signal: AbortSignal.timeout(3000) });
+        return json(res, { request: `GET /api/products/${id}`, response: await r.json() });
+      } catch {
+        return json(res, { error: 'WireMock ayakta değil — önce başlatın' }, 503);
+      }
+    }
     if (url.pathname === '/api/run' && req.method === 'POST') return startE2E(res, await body(req));
     if (url.pathname === '/api/k6' && req.method === 'POST') return startK6(res, await body(req));
     if (url.pathname === '/api/allure' && req.method === 'POST') return startAllure(res);
@@ -90,7 +116,7 @@ server.listen(PORT, () => {
 
 // ---- API ----
 
-function buildStatus() {
+async function buildStatus() {
   return {
     job: job ? { type: job.type, startedAt: job.startedAt } : null,
     log: job ? job.log.slice(-40) : [],
@@ -99,6 +125,13 @@ function buildStatus() {
     unit: readJson(UNIT_OUT),
     integration: readJson(INTEG_OUT),
     pyramid: buildPyramid(),
+    backend: {
+      wiremock: await wiremockStatus(),
+      wiremockUrl: WIREMOCK_URL,
+      api: readJson(API_OUT),
+      locust: readJson(LOCUST_OUT),
+      pact: readJson(PACT_OUT),
+    },
     mutation: existsSync(MUT_JSON) ? safe(() => summarizeMutation(MUT_JSON)) : null,
     reports: {
       playwright: existsSync(resolve(PW_REPORT_DIR, 'index.html')),
@@ -130,6 +163,13 @@ function startK6(res, opts) {
   if (opts.baseUrl) env.BASE_URL = opts.baseUrl;
   runJob('k6', 'node', args, env);
   json(res, { started: true, type: 'k6' });
+}
+
+/** Backend otomasyon işini (api|locust|pact) arka planda başlatır. */
+function startBackend(res, kind, args) {
+  if (job) return json(res, { error: 'zaten çalışıyor', job: job.type }, 409);
+  runJob(`backend-${kind}`, 'node', ['src/backend.mjs', kind, ...args]);
+  json(res, { started: true, type: `backend-${kind}` });
 }
 
 /** n8n workflow zincirini manuel tetikler: E2E smoke → k6 smoke (aynı pipeline.sh). */

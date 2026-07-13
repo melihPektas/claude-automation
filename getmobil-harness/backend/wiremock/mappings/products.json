@@ -1,0 +1,98 @@
+{
+  "mappings": [
+    {
+      "name": "Health check",
+      "request": { "method": "GET", "urlPath": "/api/health" },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": { "status": "UP", "service": "getmobil-mock-api" }
+      }
+    },
+    {
+      "name": "Ürün listesi (GET)",
+      "request": { "method": "GET", "urlPath": "/api/products" },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": {
+          "total": 3,
+          "items": [
+            { "id": 837, "name": "Apple iPhone 13 128 GB Yıldız Işığı", "grade": "Mükemmel", "price": 31599 },
+            { "id": 16285, "name": "Apple iPhone 14 Pro Max 256 GB Uzay Siyahı", "grade": "Mükemmel", "price": 62000 },
+            { "id": 109, "name": "Apple iPhone 11 64 GB Kırmızı", "grade": "Çok İyi", "price": 12099 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Ürün detay — DİNAMİK (GET, id echo + rastgele stok + zaman)",
+      "request": { "method": "GET", "urlPathPattern": "/api/products/([0-9]+)" },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "body": "{\"id\": {{request.path.[2]}}, \"name\": \"Yenilenmiş Ürün #{{request.path.[2]}}\", \"stock\": {{randomInt lower=1 upper=99}}, \"requestedAt\": \"{{now format='yyyy-MM-dd HH:mm:ss'}}\", \"traceId\": \"{{randomValue type='UUID'}}\"}",
+        "transformers": ["response-template"]
+      }
+    },
+    {
+      "name": "Ürün oluştur — DİNAMİK (POST, body echo + üretilen id)",
+      "priority": 2,
+      "request": {
+        "method": "POST",
+        "urlPath": "/api/products",
+        "bodyPatterns": [{ "matchesJsonPath": "$.name" }]
+      },
+      "response": {
+        "status": 201,
+        "headers": { "Content-Type": "application/json", "Location": "/api/products/{{randomInt lower=1000 upper=9999}}" },
+        "body": "{\"id\": {{randomInt lower=1000 upper=9999}}, \"name\": \"{{jsonPath request.body '$.name'}}\", \"price\": {{jsonPath request.body '$.price'}}, \"createdAt\": \"{{now format='yyyy-MM-dd HH:mm:ss'}}\", \"status\": \"created\"}",
+        "transformers": ["response-template"]
+      }
+    },
+    {
+      "name": "Ürün güncelle — DİNAMİK (PUT, tam güncelleme echo)",
+      "request": { "method": "PUT", "urlPathPattern": "/api/products/([0-9]+)" },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "body": "{\"id\": {{request.path.[2]}}, \"name\": \"{{jsonPath request.body '$.name'}}\", \"price\": {{jsonPath request.body '$.price'}}, \"updatedAt\": \"{{now format='yyyy-MM-dd HH:mm:ss'}}\", \"status\": \"updated\"}",
+        "transformers": ["response-template"]
+      }
+    },
+    {
+      "name": "Ürün kısmi güncelle — DİNAMİK (PATCH, alan echo)",
+      "request": { "method": "PATCH", "urlPathPattern": "/api/products/([0-9]+)" },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "body": "{\"id\": {{request.path.[2]}}, \"patched\": {{{request.body}}}, \"status\": \"patched\"}",
+        "transformers": ["response-template"]
+      }
+    },
+    {
+      "name": "Ürün sil (DELETE)",
+      "request": { "method": "DELETE", "urlPathPattern": "/api/products/([0-9]+)" },
+      "response": { "status": 204 }
+    },
+    {
+      "name": "Olmayan endpoint → 404 (bad case)",
+      "request": { "method": "GET", "urlPath": "/api/olmayan" },
+      "response": {
+        "status": 404,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": { "error": "Not Found", "message": "Kaynak bulunamadı" }
+      }
+    },
+    {
+      "name": "Geçersiz POST → 400 (bad case, name eksik — düşük öncelikli fallback)",
+      "priority": 9,
+      "request": { "method": "POST", "urlPath": "/api/products" },
+      "response": {
+        "status": 400,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": { "error": "Bad Request", "message": "name alanı zorunludur" }
+      }
+    }
+  ]
+}
