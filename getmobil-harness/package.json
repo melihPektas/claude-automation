@@ -1,0 +1,29 @@
+{
+  "name": "getmobil-harness",
+  "version": "1.0.0",
+  "description": "Getmobil E2E test suite'ini çalıştıran/orkestre eden n8n harness'ı. Test suite ayrı bir repodur (getmobil-e2e) ve buradan tetiklenir.",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "getmobil-harness": "src/run.mjs"
+  },
+  "scripts": {
+    "run": "node src/run.mjs",
+    "run:smoke": "node src/run.mjs --grep @smoke",
+    "run:all-browsers": "node src/run.mjs --browsers chromium,firefox,webkit",
+    "k6": "node src/k6.mjs",
+    "k6:smoke": "node src/k6.mjs --profile smoke",
+    "ui": "node ui/server.mjs",
+    "test:unit": "node --test test/*.unit.test.mjs",
+    "test:integration": "node --test test/*.int.test.mjs",
+    "test:all": "node --test test/*.test.mjs",
+    "test:mutation": "stryker run",
+    "setup:e2e": "node src/setup.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@stryker-mutator/core": "^8.7.1"
+  }
+}

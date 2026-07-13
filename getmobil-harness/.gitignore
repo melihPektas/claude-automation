@@ -1,0 +1,7 @@
+node_modules/
+reports/
+.stryker-tmp/
+k6-summary.json
+*.log
+.DS_Store
+.env

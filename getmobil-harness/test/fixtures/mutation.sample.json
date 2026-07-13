@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0",
+  "files": {
+    "src/a.mjs": {
+      "language": "javascript",
+      "mutants": [
+        { "id": "1", "status": "Killed" },
+        { "id": "2", "status": "Killed" },
+        { "id": "3", "status": "Killed" },
+        { "id": "4", "status": "Survived" }
+      ]
+    },
+    "src/b.mjs": {
+      "language": "javascript",
+      "mutants": [
+        { "id": "5", "status": "Killed" },
+        { "id": "6", "status": "Timeout" },
+        { "id": "7", "status": "Survived" },
+        { "id": "8", "status": "NoCoverage" }
+      ]
+    }
+  }
+}

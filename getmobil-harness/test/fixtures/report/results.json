@@ -1,0 +1,41 @@
+{
+  "stats": { "duration": 4321, "startTime": "2026-07-13T10:00:00.000Z" },
+  "suites": [
+    {
+      "title": "smoke.spec.ts",
+      "specs": [
+        {
+          "title": "geçen test",
+          "tests": [
+            { "projectName": "chromium", "status": "expected", "results": [{ "duration": 100 }] }
+          ]
+        },
+        {
+          "title": "kalan test",
+          "tests": [
+            { "projectName": "firefox", "status": "unexpected", "results": [{ "duration": 220 }] }
+          ]
+        }
+      ],
+      "suites": [
+        {
+          "title": "iç suite",
+          "specs": [
+            {
+              "title": "flaky test",
+              "tests": [
+                { "projectName": "chromium", "status": "flaky", "results": [{ "duration": 50 }, { "duration": 60 }] }
+              ]
+            },
+            {
+              "title": "atlanan test",
+              "tests": [
+                { "projectName": "webkit", "status": "skipped", "results": [] }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+[
+  {
+    "project": "chromium",
+    "title": "geçen test",
+    "status": "passed",
+    "steps": [
+      { "title": "Navigate to \"/\"", "category": "pw:api", "duration": 40, "steps": [] },
+      { "title": "Expect toBeVisible", "category": "expect", "duration": 5, "steps": [] }
+    ]
+  }
+]

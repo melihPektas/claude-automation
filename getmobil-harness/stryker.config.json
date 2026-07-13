@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "_comment": "Harness'ın deterministik saf mantık modülleri için mutation testi (summary + config). k6/run/setup/server I/O orkestrasyonudur ve canlı E2E+k6 koşularıyla entegrasyon-test edilir. node:test unit testlerini command runner ile koşar.",
+  "packageManager": "npm",
+  "testRunner": "command",
+  "commandRunner": {
+    "command": "node --test test/*.unit.test.mjs test/*.int.test.mjs"
+  },
+  "coverageAnalysis": "off",
+  "mutate": ["src/summary.mjs", "src/config.mjs"],
+  "reporters": ["clear-text", "progress", "json", "html"],
+  "jsonReporter": { "fileName": "reports/mutation/mutation.json" },
+  "htmlReporter": { "fileName": "reports/mutation/mutation.html" },
+  "concurrency": 4,
+  "timeoutMS": 20000,
+  "tempDirName": ".stryker-tmp",
+  "thresholds": { "high": 80, "low": 60, "break": 0 }
+}

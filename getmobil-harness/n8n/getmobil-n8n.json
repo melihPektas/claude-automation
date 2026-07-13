@@ -1,0 +1,128 @@
+{
+  "name": "Getmobil E2E + Yük (Harness)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "hours", "hoursInterval": 6 }] }
+      },
+      "id": "schedule-trigger",
+      "name": "⏰ Otomatik (Her 6 Saatte Bir)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 200]
+    },
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "▶ Manuel Çalıştır",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 360]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "getmobil-e2e",
+        "responseMode": "lastNode"
+      },
+      "id": "webhook-trigger",
+      "name": "🌐 Webhook (İstenildiğinde)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 520]
+    },
+    {
+      "parameters": {
+        "command": "bash /data/getmobil-harness/scripts/run-tests.sh --browsers chromium,firefox,webkit --grep @smoke"
+      },
+      "id": "run-e2e",
+      "name": "E2E (multi-browser)",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [480, 360]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = ($input.first().json.stdout || '').trim();\nlet s; try { s = JSON.parse(raw.split('\\n').pop()); } catch (e) { s = { ok:false, error:'parse edilemedi', raw }; }\nreturn [{ json: s }];"
+      },
+      "id": "parse-e2e",
+      "name": "E2E Özetini Ayrıştır",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 360]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "typeValidation": "strict" },
+          "combinator": "and",
+          "conditions": [
+            { "leftValue": "={{ $json.ok }}", "rightValue": true, "operator": { "type": "boolean", "operation": "equals" } }
+          ]
+        }
+      },
+      "id": "if-e2e",
+      "name": "E2E Geçti mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [920, 360]
+    },
+    {
+      "parameters": {
+        "command": "bash /data/getmobil-harness/scripts/run-k6.sh --profile load --vus 10 --duration 30s"
+      },
+      "id": "run-k6",
+      "name": "k6 Yük Testi",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1160, 260]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = ($input.first().json.stdout || '').trim();\nlet s; try { s = JSON.parse(raw.split('\\n').pop()); } catch (e) { s = { ok:false, error:'parse edilemedi', raw }; }\nreturn [{ json: s }];"
+      },
+      "id": "parse-k6",
+      "name": "k6 Özetini Ayrıştır",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1380, 260]
+    },
+    {
+      "parameters": {
+        "text": "=✅ Getmobil E2E + Yük BAŞARILI\nE2E: {{ $node['E2E Özetini Ayrıştır'].json.passed }}/{{ $node['E2E Özetini Ayrıştır'].json.total }} geçti\nYük p95: {{ $json.p95Ms }}ms · RPS: {{ $json.rps }} · hata: {{ ($json.failRate*100).toFixed(2) }}%"
+      },
+      "id": "notify-ok",
+      "name": "Başarı Bildirimi",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1600, 260]
+    },
+    {
+      "parameters": {
+        "text": "=🔴 Getmobil E2E BAŞARISIZ — yük testi atlandı\nBaşarısız: {{ $json.failed }}/{{ $json.total }}\nHatalar: {{ ($json.failures || []).join(', ') }}"
+      },
+      "id": "notify-fail",
+      "name": "Hata Bildirimi",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1160, 460]
+    }
+  ],
+  "connections": {
+    "⏰ Otomatik (Her 6 Saatte Bir)": { "main": [[{ "node": "E2E (multi-browser)", "type": "main", "index": 0 }]] },
+    "▶ Manuel Çalıştır": { "main": [[{ "node": "E2E (multi-browser)", "type": "main", "index": 0 }]] },
+    "🌐 Webhook (İstenildiğinde)": { "main": [[{ "node": "E2E (multi-browser)", "type": "main", "index": 0 }]] },
+    "E2E (multi-browser)": { "main": [[{ "node": "E2E Özetini Ayrıştır", "type": "main", "index": 0 }]] },
+    "E2E Özetini Ayrıştır": { "main": [[{ "node": "E2E Geçti mi?", "type": "main", "index": 0 }]] },
+    "E2E Geçti mi?": {
+      "main": [
+        [{ "node": "k6 Yük Testi", "type": "main", "index": 0 }],
+        [{ "node": "Hata Bildirimi", "type": "main", "index": 0 }]
+      ]
+    },
+    "k6 Yük Testi": { "main": [[{ "node": "k6 Özetini Ayrıştır", "type": "main", "index": 0 }]] },
+    "k6 Özetini Ayrıştır": { "main": [[{ "node": "Başarı Bildirimi", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "pinData": {}
+}

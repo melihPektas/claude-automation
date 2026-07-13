@@ -1,0 +1,20 @@
+# Bağımlılıklar
+node_modules/
+
+# Test / rapor çıktıları
+reports/
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+.stryker-tmp/
+k6-summary.json
+
+# Derleme / önbellek
+.next/
+*.tsbuildinfo
+
+# Ortam & yerel
+.env
+*.log
+.DS_Store

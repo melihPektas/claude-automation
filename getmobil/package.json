@@ -1,0 +1,31 @@
+{
+  "name": "getmobil-e2e",
+  "version": "1.0.0",
+  "description": "Getmobil.com uçtan uca Playwright otomasyonu (Page Object Model) - n8n uyumlu",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:chromium": "playwright test --project=chromium",
+    "test:firefox": "playwright test --project=firefox",
+    "test:webkit": "playwright test --project=webkit",
+    "test:desktop": "playwright test --project=chromium --project=firefox --project=webkit",
+    "test:mobile": "playwright test --project=mobile-chrome --project=mobile-safari",
+    "test:parallel": "WORKERS=6 playwright test",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report reports/html",
+    "report:allure": "allure generate reports/allure-results --clean -o reports/allure && allure open reports/allure",
+    "report:allure:generate": "allure generate reports/allure-results --clean -o reports/allure",
+    "codegen": "playwright codegen https://getmobil.com",
+    "install:browsers": "playwright install --with-deps chromium firefox webkit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "@types/node": "^22.7.0",
+    "allure-commandline": "^2.43.0",
+    "allure-playwright": "^3.10.2",
+    "typescript": "^5.6.0"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "stats": { "duration": 999, "startTime": "2026-01-01T00:00:00.000Z" },
+  "suites": [
+    {
+      "title": "a.spec.ts",
+      "specs": [
+        {
+          "title": "projesiz test",
+          "tests": [
+            { "status": "expected", "results": [{ "duration": 12 }, { "duration": 8 }] }
+          ]
+        }
+      ]
+    }
+  ]
+}
