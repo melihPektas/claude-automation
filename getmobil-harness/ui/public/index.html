@@ -146,6 +146,26 @@
     padding: 4px 8px; font: 11px/1.5 ui-monospace, Menlo, monospace; color: #9fb0c3; word-break: break-all; }
   .n8n-cmd { margin-top: 12px; font-size: 12px; color: var(--muted); }
   .badge-live { display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:6px; background:rgba(63,185,80,.15); color:var(--green); margin-left:6px; }
+
+  /* API test hover popover: satırın üstüne gelince gerçek istek/yanıt */
+  #apitable tr.hasx { cursor: help; }
+  #apitable tr.hasx:hover td { background: var(--surface-2); }
+  .xpop {
+    position: fixed; z-index: 100; display: none; width: min(480px, 90vw); max-height: 60vh; overflow: auto;
+    background: #0a0e14; border: 1px solid var(--accent); border-radius: 12px; padding: 12px 14px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.6); font: 11.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .xpop .xh { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-family: -apple-system, sans-serif; }
+  .xpop .xm { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background: rgba(88,166,255,.16); color: var(--blue); }
+  .xpop .xm.POST { background: rgba(63,185,80,.16); color: var(--green); }
+  .xpop .xm.PUT, .xpop .xm.PATCH { background: rgba(210,153,34,.16); color: var(--amber); }
+  .xpop .xm.DELETE { background: rgba(248,81,73,.16); color: var(--red); }
+  .xpop .xu { color: var(--text); font-weight: 600; font-size: 12px; }
+  .xpop .xs { margin-left: auto; font-weight: 800; }
+  .xpop .xs.ok { color: var(--green); } .xpop .xs.err { color: var(--amber); }
+  .xpop .xl { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .5px; margin: 8px 0 3px; font-family: -apple-system, sans-serif; }
+  .xpop pre { margin: 0; white-space: pre-wrap; word-break: break-word; color: #9fb0c3; }
+  .xpop .xdiv { border-top: 1px dashed var(--border); margin: 10px 0; }
   .qpanel { border: 1px solid var(--border); border-radius: 12px; padding: 14px; background: var(--surface-2); }
   .qhead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-weight: 700; font-size: 14px; }
   .qhead .rep { padding: 6px 12px; font-size: 12px; }
@@ -512,10 +532,65 @@ $('#btnLocustRep').addEventListener('click', (e) => {
   if (!backendReports.locustHtml) { e.preventDefault(); alert('Önce Locust yük testini çalıştırın — grafikli rapor otomatik oluşur.'); }
 });
 
+// --- API test hover popover'ı: satırın üstüne gelince gerçek istek/yanıt ---
+const xpop = document.createElement('div');
+xpop.className = 'xpop';
+document.body.appendChild(xpop);
+
+function xchHtml(x) {
+  return `<div class="xh">
+      <span class="xm ${esc(x.method)}">${esc(x.method)}</span>
+      <span class="xu">${esc(x.url)}</span>
+      <span class="xs ${x.status < 400 ? 'ok' : 'err'}">${x.status}</span>
+    </div>
+    ${x.requestBody != null ? `<div class="xl">İstek gövdesi</div><pre>${esc(JSON.stringify(x.requestBody, null, 1))}</pre>` : ''}
+    <div class="xl">Yanıt</div>
+    <pre>${esc(x.responseBody != null ? JSON.stringify(x.responseBody, null, 1) : '(gövde yok — 204)')}</pre>`;
+}
+
+function showXpop(row, exchanges) {
+  xpop.innerHTML = exchanges.map(xchHtml).join('<div class="xdiv"></div>');
+  xpop.style.display = 'block';
+  const r = row.getBoundingClientRect();
+  const w = xpop.offsetWidth, h = xpop.offsetHeight;
+  // Satırın soluna taşarak aç; sığmazsa sağa, dikeyde viewport içinde kal
+  let left = r.left - w - 12;
+  if (left < 8) left = Math.min(r.right + 12, window.innerWidth - w - 8);
+  let top = Math.min(r.top, window.innerHeight - h - 10);
+  xpop.style.left = Math.max(8, left) + 'px';
+  xpop.style.top = Math.max(8, top) + 'px';
+}
+
+/** API test tablosu: renderTier'dan farkı, exchange'i olan satırlara hover popover bağlaması. */
+let lastApiKey = '';
+function renderApiTests(data) {
+  // Veri değişmediyse tabloyu yeniden kurma — hover/popover kesilmesin
+  const key = JSON.stringify(data ?? null);
+  if (key === lastApiKey) return;
+  lastApiKey = key;
+  xpop.style.display = 'none';
+  const s = $('#apistats').children;
+  s[0].querySelector('.n').textContent = data ? data.total : '–';
+  s[1].querySelector('.n').textContent = data ? data.passed : '–';
+  s[2].querySelector('.n').textContent = data ? data.failed : '–';
+  const tb = $('#apitable').querySelector('tbody'); tb.innerHTML = '';
+  for (const t of (data?.tests || [])) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="unit-row"><span>${esc(t.title)}</span>
+      <span class="u-${t.status === 'passed' ? 'ok' : 'fail'}">${t.status === 'passed' ? '✓' : '✗'}</span></td>`;
+    if (t.exchanges && t.exchanges.length) {
+      tr.className = 'hasx';
+      tr.addEventListener('mouseenter', () => showXpop(tr, t.exchanges));
+      tr.addEventListener('mouseleave', () => { xpop.style.display = 'none'; });
+    }
+    tb.appendChild(tr);
+  }
+}
+
 function renderBackend(b, reports) {
   if (!b) return;
   $('#wmBadge').style.display = b.wiremock ? 'inline-block' : 'none';
-  renderTier('#apistats', '#apitable', b.api);
+  renderApiTests(b.api);
   renderLocust(b.locust);
   renderPact(b.pact);
   if (reports) {
@@ -669,8 +744,13 @@ function setStatus(kind, text) {
 
 function fmtMs(ms){ if(ms==null) return '–'; return ms<1000? Math.round(ms)+'ms' : (ms/1000).toFixed(1)+'s'; }
 
+let lastE2EKey = '';
 function renderE2E(e2e) {
   if (!e2e) return;
+  // Aynı çalıştırma verisiyse yeniden kurma — açık adım satırları kapanmasın
+  const key = `${e2e.startedAt}|${e2e.total}|${e2e.passed}|${e2e.failed}|${e2e.durationMs}`;
+  if (key === lastE2EKey) return;
+  lastE2EKey = key;
   const cards = $('#e2estats').children;
   cards[0].querySelector('.n').textContent = e2e.total;
   cards[1].querySelector('.n').textContent = e2e.passed;

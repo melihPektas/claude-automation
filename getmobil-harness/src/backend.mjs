@@ -15,6 +15,7 @@ const WIREMOCK_JAR = resolve(WIREMOCK_DIR, 'wiremock.jar');
 export const WIREMOCK_URL = process.env.WIREMOCK_URL ?? 'http://localhost:8089';
 
 export const API_OUT = resolve(HARNESS_DIR, 'reports', 'api.json');
+const API_EXCHANGES = resolve(HARNESS_DIR, 'reports', 'api-exchanges.json');
 export const LOCUST_OUT = resolve(HARNESS_DIR, 'reports', 'locust.json');
 export const PACT_OUT = resolve(HARNESS_DIR, 'reports', 'pact.json');
 
@@ -80,9 +81,20 @@ export async function runApiTests() {
   if (!wm.ok) return { ok: false, error: wm.error };
   const { code, out } = await sh('node --test --test-reporter=tap backend/api-tests/*.api.test.mjs');
   const summary = { ...parseUnitTap(out, code), tool: 'node:test + fetch', target: WIREMOCK_URL };
+  // Testlerin kaydettiği istek/yanıt çiftlerini ilgili teste iliştir (UI hover görünümü)
+  const exchanges = readJsonSafe(API_EXCHANGES) ?? {};
+  summary.tests = summary.tests.map((t) => ({ ...t, exchanges: exchanges[t.title] ?? [] }));
   writeReport(API_OUT, summary);
   refreshBackendReport();
   return summary;
+}
+
+function readJsonSafe(path) {
+  try {
+    return JSON.parse(readFileSync(path, 'utf8'));
+  } catch {
+    return null;
+  }
 }
 
 // ---------- Locust yük testi ----------
