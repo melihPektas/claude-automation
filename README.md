@@ -8,6 +8,8 @@ Page Object Model · Multi-browser · WireMock · Pact · k6 · Locust · Mutati
 
 `Playwright` &nbsp;•&nbsp; `TypeScript` &nbsp;•&nbsp; `WireMock` &nbsp;•&nbsp; `Pact` &nbsp;•&nbsp; `k6` &nbsp;•&nbsp; `Locust` &nbsp;•&nbsp; `node:test` &nbsp;•&nbsp; `Stryker` &nbsp;•&nbsp; `n8n`
 
+<img src="docs/linkedin-cover.png" alt="Getmobil Test Otomasyon Platformu" width="820"/>
+
 </div>
 
 ---
@@ -148,6 +150,22 @@ claude-automation/
 > **Backend otomasyon gereksinimleri:** Java (`brew install openjdk` — WireMock/Allure) ve Locust (`brew install locust`). `wiremock.jar` ilk çalıştırmada otomatik indirilir.
 
 Detaylar için: **[getmobil/README](./getmobil/README.md)** · **[getmobil-harness/README](./getmobil-harness/README.md)**
+
+---
+
+## 📸 Ekran Görüntüleri
+
+| Test Piramidi (canlı, otomatik güncellenen) | Backend Otomasyon |
+|---|---|
+| <img src="docs/pyramid.png" width="420"/> | <img src="docs/backend.png" width="420"/> |
+
+| Fonksiyonel Sonuçlar (adım-adım hover) | Kod Kalitesi (unit · int · mutation) |
+|---|---|
+| <img src="docs/e2e-results.png" width="420"/> | <img src="docs/quality.png" width="420"/> |
+
+| n8n Otomasyon (otomatik + manuel + webhook) | Allure Raporu |
+|---|---|
+| <img src="docs/n8n.png" width="420"/> | <img src="docs/allure.png" width="420"/> |
 
 ---
 
