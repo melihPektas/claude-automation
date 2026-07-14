@@ -82,11 +82,15 @@ export async function runApiTests() {
   const { code, out } = await sh('node --test --test-reporter=tap backend/api-tests/*.api.test.mjs');
   const summary = { ...parseUnitTap(out, code), tool: 'node:test + fetch', target: WIREMOCK_URL };
   // Testlerin kaydettiği istek/yanıt çiftlerini ilgili teste iliştir (UI hover görünümü)
-  const exchanges = readJsonSafe(API_EXCHANGES) ?? {};
-  summary.tests = summary.tests.map((t) => ({ ...t, exchanges: exchanges[t.title] ?? [] }));
+  summary.tests = attachExchanges(summary.tests, readJsonSafe(API_EXCHANGES) ?? {});
   writeReport(API_OUT, summary);
   refreshBackendReport();
   return summary;
+}
+
+/** Test listesine, başlık eşleşmesiyle istek/yanıt kayıtlarını iliştirir (saf, test edilir). */
+export function attachExchanges(tests, exchanges) {
+  return (tests ?? []).map((t) => ({ ...t, exchanges: exchanges[t.title] ?? [] }));
 }
 
 function readJsonSafe(path) {

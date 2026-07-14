@@ -43,13 +43,13 @@ Platform, kendi kodunu **test piramidi** stratejisiyle test eder — geniş hız
 ```
               ▲
              ╱ ╲        🟧 E2E .............  70   (Playwright × 5 motor)
-            ╱───╲       🟦 Integration .....  79   (modüller + gerçek I/O)
-           ╱─────╲      🟩 Unit ............ 101   (node:test, izole, ms'ler)
+            ╱───╲       🟦 Integration+API ..  95   (modül+I/O 79 · API 13 · Pact 3)
+           ╱─────╲      🟩 Unit ............ 125   (node:test, izole, ms'ler)
           ╱───────╲
          ╱─────────╲    ✓ unit > integration > e2e  →  Piramit korunuyor
 ```
 
-**Toplam 250 test.** Dashboard'daki canlı piramit görseli `unit > integration > e2e` sağlığını doğrular. **Mutation testi (Stryker): %85.6** — testlerin gerçekten hata yakaladığını kanıtlar.
+**Toplam 290 test.** Dashboard'daki canlı piramit görseli `unit > integration > e2e` sağlığını doğrular. **Mutation testi (Stryker): %85.6** — testlerin gerçekten hata yakaladığını kanıtlar.
 
 ---
 

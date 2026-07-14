@@ -13,13 +13,13 @@ export const LOCUST_HTML = resolve(BACKEND_REPORT_DIR, 'locust.html');
  * bir Backend Test Raporu HTML'i üretir: reports/backend/index.html.
  * Her backend koşusundan sonra çağrılır — rapor daima günceldir.
  */
-export function writeBackendReport({ apiPath, locustPath, pactPath }) {
+export function writeBackendReport({ apiPath, locustPath, pactPath, outPath = BACKEND_REPORT_HTML }) {
   const api = readJson(apiPath);
   const locust = readJson(locustPath);
   const pact = readJson(pactPath);
-  mkdirSync(BACKEND_REPORT_DIR, { recursive: true });
-  writeFileSync(BACKEND_REPORT_HTML, render({ api, locust, pact }));
-  return BACKEND_REPORT_HTML;
+  mkdirSync(resolve(outPath, '..'), { recursive: true });
+  writeFileSync(outPath, render({ api, locust, pact }));
+  return outPath;
 }
 
 function readJson(p) {

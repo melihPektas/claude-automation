@@ -414,7 +414,7 @@
       <div class="pyr-health" id="pyrhealth"></div>
       <div class="pyr-legend">
         <span>🟩 <b>Unit</b> — hızlı, izole (node:test)</span>
-        <span>🟦 <b>Integration</b> — modüller + gerçek I/O</span>
+        <span>🟦 <b>Integration + API/Pact</b> — modüller + gerçek I/O <span id="pyrbd" style="color:var(--muted)"></span></span>
         <span>🟧 <b>E2E</b> — tam tarayıcı (Playwright × 5 motor)</span>
       </div>
     </div>
@@ -667,9 +667,13 @@ function renderPyramid(p) {
     box.innerHTML = '<div class="empty">Katman sayıları için unit/integration testlerini çalıştırın.</div>';
     return;
   }
+  const bd = p.breakdown || {};
+  const intLabel = (bd.api || bd.pact)
+    ? `Integration + API/Pact`
+    : 'Integration';
   const tiers = [
     { key: 'e2e', label: 'E2E (Playwright)', n: p.e2e, cls: 'tier-e2e' },
-    { key: 'integration', label: 'Integration', n: p.integration, cls: 'tier-int' },
+    { key: 'integration', label: intLabel, n: p.integration, cls: 'tier-int' },
     { key: 'unit', label: 'Unit (node:test)', n: p.unit, cls: 'tier-unit' },
   ];
   const total = tiers.reduce((a, t) => a + (t.n || 0), 0) || 1;
@@ -683,14 +687,19 @@ function renderPyramid(p) {
   }).join('');
   $('#pyrtag').textContent = `${total} test`;
 
+  // Orta katman kırılımı (harness int + API + Pact)
+  $('#pyrbd').textContent = (bd.api || bd.pact)
+    ? `(harness ${bd.harnessInt ?? 0} · API ${bd.api ?? 0} · Pact ${bd.pact ?? 0})`
+    : '';
+
   // Piramit sağlığı: unit > integration > e2e mi?
   const h = $('#pyrhealth');
   if (p.unit != null && p.integration != null && p.e2e != null) {
     const healthy = p.unit > p.integration && p.integration > p.e2e;
     h.className = 'pyr-health ' + (healthy ? 'pyr-ok' : 'pyr-warn');
     h.textContent = healthy
-      ? `✓ Piramit korunuyor — geniş unit tabanı (${p.unit}) › integration (${p.integration}) › e2e (${p.e2e})`
-      : `⚠ Dağılım: unit ${p.unit} · integration ${p.integration} · e2e ${p.e2e}`;
+      ? `✓ Piramit korunuyor — geniş unit tabanı (${p.unit}) › integration+API (${p.integration}) › e2e (${p.e2e})`
+      : `⚠ Dağılım: unit ${p.unit} · integration+API ${p.integration} · e2e ${p.e2e}`;
   } else {
     h.className = 'pyr-health';
     h.textContent = 'Tam piramit için unit + integration testlerini çalıştırın (E2E suite: ' + (p.e2e ?? '—') + ' test).';

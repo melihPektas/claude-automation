@@ -253,12 +253,17 @@ function readK6() {
   }
 }
 
-/** Test piramidi katman sayıları: unit > integration > e2e. */
+/** Test piramidi katman sayıları: unit > integration(+API/Pact) > e2e.
+ *  Backend API ve Pact kontrat testleri servis-seviyesi testlerdir —
+ *  klasik piramidin orta (service) katmanına kırılımıyla dahil edilir. */
 function buildPyramid() {
   const unit = readJson(UNIT_OUT)?.total ?? null;
-  const integration = readJson(INTEG_OUT)?.total ?? null;
+  const harnessInt = readJson(INTEG_OUT)?.total ?? null;
+  const api = readJson(API_OUT)?.total ?? 0;
+  const pact = readJson(PACT_OUT)?.consumer?.total ?? 0;
+  const integration = harnessInt == null ? null : harnessInt + api + pact;
   const e2e = e2eSuiteCount; // playwright --list ile önbelleğe alınır
-  return { unit, integration, e2e };
+  return { unit, integration, e2e, breakdown: { harnessInt, api, pact } };
 }
 
 function readJson(path) {
