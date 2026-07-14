@@ -14,5 +14,6 @@
   "concurrency": 4,
   "timeoutMS": 20000,
   "tempDirName": ".stryker-tmp",
-  "thresholds": { "high": 80, "low": 60, "break": 0 }
+  "_thresholds_comment": "break: 70 → mutation skoru %70 altına düşerse çıkış kodu 1 (pre-push kapısı push'u reddeder)",
+  "thresholds": { "high": 80, "low": 60, "break": 70 }
 }

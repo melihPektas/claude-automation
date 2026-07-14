@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, statSync, watch } from 'node:fs';
 import { resolve, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadConfig } from '../src/config.mjs';
@@ -53,6 +53,73 @@ function computeE2ECount() {
   child.on('error', () => {});
 }
 computeE2ECount();
+
+// ---- Otomatik piramit tazeleme + kalite kapısı (dosya izleyici) ----
+// Test/kaynak dosyaları değişince: unit + integration otomatik koşulur
+// (her geliştirme sonrası unit test zorunluluğunun dev-time ayağı),
+// E2E sayısı --list ile tazelenir → piramit kendiliğinden güncellenir.
+// Sert kapı ise git hook'larıdır (.githooks: pre-commit unit+int, pre-push mutation).
+const watcherState = { watching: true, lastRefresh: null, lastTrigger: null, pending: false };
+const WATCH_DIRS = [
+  resolve(cfg.e2eDir, 'tests'),
+  resolve(HARNESS_DIR, 'test'),
+  resolve(HARNESS_DIR, 'src'),
+  resolve(HARNESS_DIR, 'backend'),
+];
+let watchDebounce = null;
+for (const dir of WATCH_DIRS) {
+  try {
+    watch(dir, { recursive: true }, (_ev, file) => {
+      if (!file || /node_modules|pacts|__pycache__|\.pyc$|\.jar$|\.DS_Store/.test(file)) return;
+      watcherState.lastTrigger = String(file);
+      clearTimeout(watchDebounce);
+      watchDebounce = setTimeout(runQualityGate, 2000);
+    });
+  } catch {
+    /* dizin yoksa izlenmez */
+  }
+}
+
+/** Kalite kapısını koşar: unit + integration (+ WireMock ayaktaysa API) + e2e sayımı. */
+async function runQualityGate() {
+  if (job) {
+    watcherState.pending = true; // iş bitince tekrar denenir
+    return;
+  }
+  job = { type: 'quality-gate', startedAt: new Date().toISOString(), log: [`değişiklik: ${watcherState.lastTrigger ?? '?'}`] };
+  const step = (cmd, args) =>
+    new Promise((done) => {
+      const child = spawn(cmd, args, { cwd: HARNESS_DIR, env: process.env });
+      const cap = (buf) => {
+        for (const line of buf.toString().split('\n')) if (line.trim()) job?.log.push(line.replace(/\x1b\[[0-9;]*m/g, ''));
+        if (job && job.log.length > 400) job.log = job.log.slice(-400);
+      };
+      child.stdout.on('data', cap);
+      child.stderr.on('data', cap);
+      child.on('close', (code) => done(code ?? 0));
+      child.on('error', () => done(1));
+    });
+
+  try {
+    job.log.push('▶ kalite kapısı: unit testler…');
+    await step('node', ['src/quality.mjs', 'unit']);
+    job.log.push('▶ kalite kapısı: integration testler…');
+    await step('node', ['src/quality.mjs', 'integration']);
+    if (await wiremockStatus()) {
+      job.log.push('▶ kalite kapısı: API testleri (WireMock ayakta)…');
+      await step('node', ['src/backend.mjs', 'api']);
+    }
+    computeE2ECount();
+    watcherState.lastRefresh = new Date().toISOString();
+    job.log.push('✓ piramit tazelendi');
+  } finally {
+    job = null;
+    if (watcherState.pending) {
+      watcherState.pending = false;
+      setTimeout(runQualityGate, 1000);
+    }
+  }
+}
 
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
@@ -129,6 +196,7 @@ async function buildStatus() {
     unit: readJson(UNIT_OUT),
     integration: readJson(INTEG_OUT),
     pyramid: buildPyramid(),
+    watcher: watcherState,
     backend: {
       wiremock: await wiremockStatus(),
       wiremockUrl: WIREMOCK_URL,

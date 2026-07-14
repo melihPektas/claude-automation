@@ -417,6 +417,9 @@
         <span>🟦 <b>Integration + API/Pact</b> — modüller + gerçek I/O <span id="pyrbd" style="color:var(--muted)"></span></span>
         <span>🟧 <b>E2E</b> — tam tarayıcı (Playwright × 5 motor)</span>
       </div>
+      <div class="pyr-legend" style="margin-top:8px">
+        <span id="pyrwatch">🔄 <b>Canlı</b> — test/kaynak değişince unit+integration otomatik koşulur, piramit kendini günceller</span>
+      </div>
     </div>
   </section>
 
@@ -839,7 +842,7 @@ async function poll() {
   try {
     const r = await fetch('/api/status'); const st = await r.json();
     $('#e2edir').textContent = 'E2E: ' + (st.e2eDir || '');
-    const jobLabel = { k6: 'Yük testi', allure: 'Allure raporu', e2e: 'Testler', unit: 'Unit testler', integration: 'Integration testler', mutation: 'Mutation testi', pipeline: 'n8n pipeline (E2E→k6)', 'backend-api': 'API testleri', 'backend-locust': 'Locust yük testi', 'backend-pact': 'Pact contract testi' };
+    const jobLabel = { k6: 'Yük testi', allure: 'Allure raporu', e2e: 'Testler', unit: 'Unit testler', integration: 'Integration testler', mutation: 'Mutation testi', pipeline: 'n8n pipeline (E2E→k6)', 'backend-api': 'API testleri', 'backend-locust': 'Locust yük testi', 'backend-pact': 'Pact contract testi', 'quality-gate': '🔄 Kalite kapısı (otomatik)' };
     const runBtns = ['#runE2E', '#runK6', '#runUnit', '#runInteg', '#runMut', '#runPipeline', '#runApi', '#runLocust', '#runPact'];
     $('#pipelineLive').style.display = (st.job && st.job.type === 'pipeline') ? 'inline-block' : 'none';
     if (st.job) {
@@ -861,6 +864,12 @@ async function poll() {
     renderTier('#integstats', '#integtable', st.integration);
     renderPyramid(st.pyramid); renderMutation(st.mutation);
     renderBackend(st.backend, st.reports);
+    if (st.watcher) {
+      const w = st.watcher;
+      $('#pyrwatch').innerHTML = '🔄 <b>Canlı</b> — test/kaynak değişince unit+integration otomatik koşulur' +
+        (w.lastRefresh ? ` · son tazeleme: <b>${new Date(w.lastRefresh).toLocaleTimeString('tr-TR')}</b>` : '') +
+        (w.lastTrigger ? ` <span style="color:var(--muted)">(${esc(w.lastTrigger)})</span>` : '');
+    }
   } catch (e) { setStatus('fail', 'Sunucuya bağlanılamadı'); }
 }
 

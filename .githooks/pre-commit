@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+#
+# 🚧 KALİTE KAPISI (pre-commit): her geliştirme sonrası unit + integration ZORUNLU.
+# Testler geçmeden commit atılamaz.
+#
+# Acil durum kaçışı (önerilmez): git commit --no-verify
+set -e
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT/getmobil-harness"
+
+# İlk kullanımda bağımlılıkları kur (sonraki commit'lerde atlanır)
+if [ ! -d node_modules ]; then
+  echo "📦 Kalite kapısı: bağımlılıklar kuruluyor (ilk sefer)…"
+  npm ci --silent
+fi
+
+echo "🧪 Kalite kapısı 1/2: unit testler…"
+npm run -s test:unit >/dev/null
+echo "   ✓ unit geçti"
+
+echo "🧪 Kalite kapısı 2/2: integration testler…"
+npm run -s test:integration >/dev/null
+echo "   ✓ integration geçti"
+
+echo "✅ Kalite kapısı geçildi — commit'e izin verildi"

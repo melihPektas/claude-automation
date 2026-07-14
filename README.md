@@ -49,7 +49,11 @@ Platform, kendi kodunu **test piramidi** stratejisiyle test eder — geniş hız
          ╱─────────╲    ✓ unit > integration > e2e  →  Piramit korunuyor
 ```
 
-**Toplam 290 test.** Dashboard'daki canlı piramit görseli `unit > integration > e2e` sağlığını doğrular. **Mutation testi (Stryker): %85.6** — testlerin gerçekten hata yakaladığını kanıtlar.
+**Toplam 290+ test.** Dashboard'daki canlı piramit görseli `unit > integration > e2e` sağlığını doğrular. **Mutation testi (Stryker): %85.6** — testlerin gerçekten hata yakaladığını kanıtlar.
+
+**🔄 Piramit kendini günceller:** dashboard sunucusu test/kaynak dizinlerini izler; yeni test eklendiğinde kalite kapısı (unit+integration) otomatik koşar ve sayılar tazelenir.
+
+**🚧 Zorunlu kalite kapısı:** `bash setup-hooks.sh` ile git hook'ları kurulur — **pre-commit** unit+integration geçmeden commit'e, **pre-push** mutation testi (eşik %70) geçmeden push'a izin vermez.
 
 ---
 

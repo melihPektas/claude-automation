@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+#
+# 🧬 MUTATION KAPISI (pre-push): push öncesi Stryker mutation testi ZORUNLU.
+# Mutation skoru %70 eşiğinin altına düşerse (stryker.config.json → thresholds.break)
+# Stryker 1 döner ve push REDDEDİLİR.
+#
+# Acil durum kaçışı (önerilmez): SKIP_MUTATION=1 git push
+set -e
+
+if [ "${SKIP_MUTATION:-0}" = "1" ]; then
+  echo "⚠ SKIP_MUTATION=1 — mutation kapısı atlandı (önerilmez)"
+  exit 0
+fi
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT/getmobil-harness"
+
+if [ ! -d node_modules ]; then
+  echo "📦 Mutation kapısı: bağımlılıklar kuruluyor (ilk sefer)…"
+  npm ci --silent
+fi
+
+echo "🧬 Mutation kapısı: Stryker çalışıyor (~25sn, eşik: %70)…"
+LOG="$(mktemp)"
+set +e
+npm run -s test:mutation >"$LOG" 2>&1
+ok=$?
+set -e
+grep -E "Mutation score|All files|config.mjs|summary.mjs" "$LOG" | tail -5 || true
+
+if [ $ok -ne 0 ]; then
+  echo "❌ Mutation skoru %70 eşiğinin altında — push REDDEDİLDİ"
+  echo "   Rapor: getmobil-harness/reports/mutation/mutation.html"
+  exit 1
+fi
+echo "✅ Mutation kapısı geçildi — push'a izin verildi"

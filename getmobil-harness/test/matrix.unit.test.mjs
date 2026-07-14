@@ -69,3 +69,10 @@ for (const durations of [[10], [10, 20], [5, 5, 5], [100, 200, 300]]) {
     assert.equal(s.tests[0].durationMs, total);
   });
 }
+
+// Watcher canlı demo: yeni eklenen test piramidi otomatik güncellemeli
+test('summarize tek skipped test toplamda sayılır', () => {
+  const s = summarize(repFile({ suites: [{ specs: [{ title: 't', tests: [{ projectName: 'x', status: 'skipped', results: [] }] }] }] }));
+  assert.equal(s.total, 1);
+  assert.equal(s.skipped, 1);
+});
